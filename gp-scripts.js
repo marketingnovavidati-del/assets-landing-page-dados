@@ -514,21 +514,37 @@ document.querySelectorAll('[data-custom-select]').forEach(cs => {
 
     if (Object.values(errors).some(Boolean)) return;
 
+    // extrai label legível do volume (ex: "Menos de 5.000")
+    const volumeOption = volume.options[volume.selectedIndex];
+    const volumeLabel = volumeOption ? volumeOption.text : volume.value;
+    
+    // extrai UTMs e outros params da URL atual
+    const params = new URLSearchParams(window.location.search);
+    const utms = {
+      utm_source:   params.get('utm_source'),
+      utm_medium:   params.get('utm_medium'),
+      utm_campaign: params.get('utm_campaign'),
+      utm_term:     params.get('utm_term'),
+      utm_content:  params.get('utm_content'),
+      gclid:        params.get('gclid'),  // Google Ads
+      fbclid:       params.get('fbclid')  // Meta Ads
+    };
+    
     // payload
     const payload = {
-      nome: nome.value.trim(),
-      email: email.value.trim().toLowerCase(),
-      telefone: telefone.value.trim(),
-      telefone_digits: onlyDigits(telefone.value),
-      cnpj: cnpj.value.trim(),
-      cnpj_digits: onlyDigits(cnpj.value),
-      volume_consultas_mes: volume.value,
-      // contexto extra útil pro Pipedrive / atribuição
-      origem: 'landing-dados',
-      url: window.location.href,
-      referrer: document.referrer || null,
-      user_agent: navigator.userAgent,
-      timestamp: new Date().toISOString()
+      nome: nome.value.trim(),
+      email: email.value.trim().toLowerCase(),
+      telefone: telefone.value.trim(),
+      telefone_digits: onlyDigits(telefone.value),
+      cnpj: cnpj.value.trim(),
+      cnpj_digits: onlyDigits(cnpj.value),
+      volume_consultas_mes: volumeLabel,
+      fluxo_origem: 'DADOS',
+      url: window.location.href,
+      referrer: document.referrer || null,
+      ...utms,
+      user_agent: navigator.userAgent,
+      timestamp: new Date().toISOString()
     };
 
     const submitBtn = form.querySelector('.form-submit');
