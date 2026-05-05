@@ -475,7 +475,7 @@ document.querySelectorAll('[data-custom-select]').forEach(cs => {
 
 // Validação e envio forms
 (function () {
-  const WEBHOOK_URL = 'https://n8n-production-790c.up.railway.app/webhook-test/f79276c7-a393-4de9-92d7-e3bcfaf1df93';
+  const WEBHOOK_URL = 'https://n8n-production-790c.up.railway.app/webhook/f79276c7-a393-4de9-92d7-e3bcfaf1df93';
 
   const form = document.getElementById('leadForm');
   const success = document.getElementById('formSuccess');
