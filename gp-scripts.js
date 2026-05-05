@@ -472,3 +472,93 @@ document.querySelectorAll('[data-custom-select]').forEach(cs => {
     if (e.key === 'Tab') { close(); }
   });
 });
+
+// Validação e envio forms
+(function () {
+  const WEBHOOK_URL = 'https://n8n-production-790c.up.railway.app/webhook-test/f79276c7-a393-4de9-92d7-e3bcfaf1df93';
+
+  const form = document.getElementById('leadForm');
+  const success = document.getElementById('formSuccess');
+  if (!form) return;
+
+  // helpers
+  const setError = (el, hasError) => el.classList.toggle('error', hasError);
+  const isEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  const onlyDigits = v => (v || '').replace(/\D/g, '');
+  const isCNPJ = v => onlyDigits(v).length === 14; // se quiser validação real do dígito, me fala
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const nome     = form.querySelector('#nome');
+    const email    = form.querySelector('#email');
+    const telefone = form.querySelector('#telefone');
+    const cnpj     = form.querySelector('#cnpj');
+    const volume   = form.querySelector('#volume'); // o select escondido do custom-select
+    const customSelect = form.querySelector('[data-custom-select]');
+
+    // validação
+    const errors = {
+      nome:     !nome.value.trim(),
+      email:    !isEmail(email.value.trim()),
+      telefone: onlyDigits(telefone.value).length < 10,
+      cnpj:     !isCNPJ(cnpj.value),
+      volume:   !volume.value
+    };
+
+    setError(nome, errors.nome);
+    setError(email, errors.email);
+    setError(telefone, errors.telefone);
+    setError(cnpj, errors.cnpj);
+    if (customSelect) customSelect.classList.toggle('error', errors.volume);
+
+    if (Object.values(errors).some(Boolean)) return;
+
+    // payload
+    const payload = {
+      nome: nome.value.trim(),
+      email: email.value.trim().toLowerCase(),
+      telefone: telefone.value.trim(),
+      telefone_digits: onlyDigits(telefone.value),
+      cnpj: cnpj.value.trim(),
+      cnpj_digits: onlyDigits(cnpj.value),
+      volume_consultas_mes: volume.value,
+      // contexto extra útil pro Pipedrive / atribuição
+      origem: 'landing-dados',
+      url: window.location.href,
+      referrer: document.referrer || null,
+      user_agent: navigator.userAgent,
+      timestamp: new Date().toISOString()
+    };
+
+    const submitBtn = form.querySelector('.form-submit');
+    const originalLabel = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.style.opacity = '0.7';
+
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+
+      // sucesso
+      form.style.display = 'none';
+      success.classList.add('show');
+
+      // analytics opcional
+      if (window.dataLayer) {
+        window.dataLayer.push({ event: 'lead_submit', volume: payload.volume_consultas_mes });
+      }
+    } catch (err) {
+      console.error('[lead] erro ao enviar:', err);
+      submitBtn.disabled = false;
+      submitBtn.style.opacity = '';
+      submitBtn.innerHTML = originalLabel;
+      alert('Não foi possível enviar agora. Tente novamente em instantes.');
+    }
+  });
+})();
